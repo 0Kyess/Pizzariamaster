@@ -45,6 +45,10 @@ async function listarUsuarios() {
                             <button class="btn btn-info btn-sm visualizar-usuario" data-id="${usuario.id}">
                                 <i class="fas fa-eye"></i>
                             </button>
+
+                            <button class="btn btn-warning btn-sm edit-user" data-id="${usuario.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
                             ${
                                 usuario.id != userIdLogado
                                 ? `<button class="btn btn-danger btn-sm excluir-usuario" data-id="${usuario.id}">
@@ -75,6 +79,14 @@ async function listarUsuarios() {
                         visualizarUsuario(userId);
                     });
                 });
+                
+                document.querySelectorAll('.editar-usuario').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-id');
+                        modaledituser(userId);
+                    });
+                });
+
             } else {
                 throw new Error('Erro ao buscar os usuários');
             }
@@ -147,6 +159,86 @@ function visualizarUsuario(userId) {
     })
     .catch(error => {
         console.error('Erro ao visualizar o usuário:', error);
+    });
+}
+
+function modaledituser(userId) {
+    const token = localStorage.getItem('token');
+
+    // fazendo a requisição de buscar dos dados dos usuários. 
+    fetch(`http://localhost:8000/api/user/visualizar/${userId}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Preenche os campos do modal com os dados do usuário
+        document.getElementById('userIdEdit').value = userId;
+        document.getElementById('nameEdit').value = data.user.name;
+        document.getElementById('emailEdit').value = data.user.email;
+
+        // abrindo o modal de user
+        const modaledit = new bootstrap.Modal(document.getElementById('modalEditUser'));
+        modaledit.show();
+    })
+    .catch(error => {
+        console.error('Erro ao buscar dados do usuário:', error);
+        alert('Erro ao carregar os dados do usuário.');
+    });
+}
+
+function editUser() {
+    const token = localStorage.getItem('token');
+    const userId = document.getElementById('userIdEdit').value; 
+
+    
+    const nome = document.getElementById('nameEdit').value;
+    const email = document.getElementById('emailEdit').value;
+    const password = document.getElementById('passwordEdit').value;
+    const passwordConfirmation = document.getElementById('password_confirmationEdit').value;
+
+   
+    const user = {
+        name: nome,
+        email: email
+    };
+
+    
+    if (password) {
+        user.password = password;
+        user.password_confirmation = passwordConfirmation;
+    }
+
+    
+    fetch(`http://localhost:8000/api/user/atualizar/${userId}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user)
+    })
+    .then(response => {
+        if (!response.ok) {
+            // Se a resposta não for bem-sucedida, lança um erro para o bloco catch
+            throw new Error('Erro ao atualizar o usuário.');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert('Usuário atualizado com sucesso!');
+
+            
+        const editarModal = bootstrap.Modal.getInstance(document.getElementById('editarUsuarioModal'));
+        editarModal.hide();
+
+    })
+    .catch(error => {
+        console.error('Erro ao editar o usuário:', error);
+        alert('Ocorreu um erro ao tentar atualizar o usuário.');
     });
 }
 
